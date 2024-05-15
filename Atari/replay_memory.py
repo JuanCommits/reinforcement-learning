@@ -1,24 +1,18 @@
 import random
-from collections import namedtuple
+from collections import namedtuple, deque
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'reward', 'done', 'next_state'))
 
-# Ejemplo uso
-# nueva_tupla = Transition(state, action, reward, done, next_state)
-
 class ReplayMemory:
+    def __init__(self, capacity):
+        self.memory = deque([], maxlen=capacity)
 
-    def __init__(self, buffer_size):
-        self.buffer_size = buffer_size
-        self.memory = []
-        self.position = 0
-
-    def add(self, state, action, reward, done, next_state):
-      # Implementar.
+    def push(self, *args):
+        self.memory.append(Transition(*args))
 
     def sample(self, batch_size):
-      # Implementar.
+        return random.sample(self.memory, min(len(self.memory), batch_size))
 
     def __len__(self):
-      # Implementar.
+        return len(self.memory)
