@@ -6,9 +6,9 @@ from torch.nn import Linear
 class DQN_CNN_Model(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DQN_CNN_Model, self).__init__()
-        self.l1 = Linear(input_dim, 64)
-        self.l2 = Linear(64, 32)
-        self.out = Linear(32, output_dim)
+        self.l1 = Linear(input_dim, 128)
+        self.l2 = Linear(128, 128)
+        self.out = Linear(128, output_dim)
 
     def forward(self, x):
         pred = torch.relu(self.l1(x))
