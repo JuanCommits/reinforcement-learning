@@ -36,7 +36,6 @@ class Agent(ABC):
       rewards = []
       total_steps = 0
       writer = SummaryWriter(comment="-" + writer_name)
-      self.epsilon = self.epsilon_i
 
       for ep in tqdm(range(number_episodes), unit=' episodes'):
         if total_steps > max_steps:
@@ -48,8 +47,9 @@ class Agent(ABC):
         done, truncated = False, False
         obs, _ = self.env.reset()
         state = self.state_processing_function(obs, self.device)
+        episode_steps = 0
 
-        while not (done or truncated) and total_steps < max_steps:
+        while not done and total_steps < max_steps and episode_steps < max_steps_episode:
 
             # Seleccionar accion usando una política epsilon-greedy.
 
@@ -65,6 +65,7 @@ class Agent(ABC):
 
             current_episode_reward += reward
             total_steps += 1
+            episode_steps += 1
 
             # Guardar la transicion en la memoria
             self.memory.push(state, action, torch.tensor(reward, device=self.device).unsqueeze(0), 
@@ -73,26 +74,39 @@ class Agent(ABC):
             # Actualizar el modelo
             self.update_weights()
         
-        rewards.append(current_episode_reward)
+        if ep % self.episode_block == 0:
+            np.concatenate((rewards, self.test_agent(ep, max_steps_episode, total_steps)))
         mean_reward = np.mean(rewards[-100:])
-        writer.add_scalar("epsilon", self.epsilon, total_steps)
+        writer.add_scalar("epsilon", self.compute_epsilon(total_steps), total_steps)
         writer.add_scalar("reward_100", mean_reward, total_steps)
         writer.add_scalar("reward", current_episode_reward, total_steps)
 
-        # Report on the traning rewards every EPISODE BLOCK episodes
-        if ep % self.episode_block == 0:
-          print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
-
-      print(f"Episode {ep + 1} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
 
       torch.save(self.policy.state_dict(), "GenericDQNAgent.dat")
       writer.close()
 
       return rewards
     
+    def test_agent(self, ep, max_episode_steps=10000, total_steps=0, episodes=100):
+        rewards = np.zeros(episodes)
+        for i in range(episodes):
+            current_episode_reward = 0.0
+            done = False
+            truncated = False
+            episode_steps = 0
+            obs, _ = self.env.reset()
+            while not (done or truncated) and episode_steps < max_episode_steps:
+                state = self.state_processing_function(obs, self.device)
+                action = self.select_action(state, total_steps, train=False)
+                obs, reward, done, truncates,  _ = self.env.step(action.item())
+                current_episode_reward += reward
+                episode_steps += 1
+            rewards[i] = current_episode_reward
+        print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards)} wins epsilon {self.compute_epsilon(total_steps)} total steps {total_steps}")
+        return rewards
         
     def compute_epsilon(self, steps_so_far):
-        return max(self.epsilon_f, self.epsilon * (self.epsilon_decay**(np.trunc(steps_so_far/self.epsilon_decay))))
+        return max(self.epsilon_f, self.epsilon_i * (self.epsilon_decay**(np.trunc(steps_so_far/self.epsilon_anneal))))
     
     def record_test_episode(self, env):
         done = False
