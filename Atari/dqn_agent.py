@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 from replay_memory import ReplayMemory, Transition
-from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
 import numpy as np
 import random
@@ -13,7 +12,7 @@ class DQNAgent(Agent):
     def __init__(self, gym_env, model, obs_processing_func, memory_buffer_size, batch_size, 
                  learning_rate, gamma, epsilon_i, epsilon_f, episode_block, 
                  epsilon_anneal_time=None, epsilon_decay=None, optimizer=None, 
-                 loss_function=nn.MSELoss(), device='cpu'):
+                 loss_function=nn.SmoothL1Loss(), device='cpu'):
         super().__init__(gym_env, obs_processing_func, memory_buffer_size, batch_size,
                          learning_rate, gamma, epsilon_i, epsilon_f, epsilon_anneal_time, 
                          epsilon_decay, episode_block, device)
@@ -39,14 +38,12 @@ class DQNAgent(Agent):
             actions = torch.cat(batch.action).to(self.device)
             next_states = torch.cat(batch.next_state).to(self.device)
             rewards = torch.cat(batch.reward).to(self.device)
-            dones = torch.cat(batch.done).to(self.device).unsqueeze(1)
+            dones = torch.cat(batch.done).to(self.device)
 
             # Obetener el valor estado-accion (Q) de acuerdo a la policy net para todo elemento (estados) del minibatch.
-            preds = self.policy(states).gather(1, actions) * (1 - dones)
+            preds = self.policy(states).gather(1, actions)
 
-            next_state_values = None
-            with torch.no_grad():
-              next_state_values = ((self.policy(next_states).detach().max(1).values * self.gamma) + rewards)
+            next_state_values = ((self.policy(next_states).max(1).values * self.gamma) + rewards) * (1 - dones)
 
             loss = self.criterion(preds, next_state_values.unsqueeze(1))
             loss.backward()
