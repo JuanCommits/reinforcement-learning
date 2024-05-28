@@ -101,9 +101,13 @@ class Agent(ABC):
         print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards)} wins epsilon {self.compute_epsilon(total_steps)} total steps {total_steps}")
         return rewards
         
-    def compute_epsilon(self, steps_so_far):
-        return max(self.epsilon_f, self.epsilon_i * (self.epsilon_decay**(np.trunc(steps_so_far/self.epsilon_anneal))))
-    
+    def compute_epsilon(self, steps):
+        if self.epsilon_decay is not None:
+            return self.epsilon_f + (self.epsilon_i - self.epsilon_f) * np.exp(-1. * steps / self.epsilon_decay)
+        elif self.epsilon_anneal is not None:
+            return max(self.epsilon_f, self.epsilon_i - (self.epsilon_i - self.epsilon_f) * min(1.0, steps / self.epsilon_anneal))
+        return self.epsilon_f
+        
     def record_test_episode(self, env):
         done = False
     

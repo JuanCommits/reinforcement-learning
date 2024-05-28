@@ -43,9 +43,12 @@ class DQNAgent(Agent):
             # Obetener el valor estado-accion (Q) de acuerdo a la policy net para todo elemento (estados) del minibatch.
             preds = self.policy(states).gather(1, actions)
 
-            next_state_values = ((self.policy(next_states).max(1).values * self.gamma) + rewards) * (1 - dones)
+            target_values = torch.zeros(self.batch_size, device=self.device)
+            with torch.no_grad():
+              next_state_values = self.policy(next_states).max(1)[0].detach()
+              target_values = rewards + (self.gamma * next_state_values * (1 - dones))
 
-            loss = self.criterion(preds, next_state_values.unsqueeze(1))
+            loss = self.criterion(preds, target_values.unsqueeze(1))
             loss.backward()
             nn.utils.clip_grad_value_(self.policy.parameters(), 100)
             self.optim.step()
