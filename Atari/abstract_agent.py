@@ -67,6 +67,7 @@ class Agent(ABC):
             self.memory.push(state, action, torch.tensor(reward, device=self.device).unsqueeze(0), 
                             torch.tensor(done, dtype=torch.float16, device=self.device).unsqueeze(0), next_state)
 
+            state = next_state
             # Actualizar el modelo
             self.update_weights()
         
