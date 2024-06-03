@@ -70,11 +70,11 @@ class SkipFrame(gym.Wrapper):
         total_reward = 0.0
         for i in range(self._skip):
             # Accumulate reward and repeat the same action
-            obs, reward, done, info = self.env.step(action)
+            obs, reward, terminated, truncated,  info = self.env.step(action)
             total_reward += reward
-            if done:
+            if terminated:
                 break
-        return obs, total_reward, done, info
+        return obs, total_reward, terminated, truncated, info
 
 
 class GrayScaleObservation(gym.ObservationWrapper):
@@ -109,7 +109,16 @@ class ResizeObservation(gym.ObservationWrapper):
 
     def observation(self, observation):
         transforms = T.Compose(
-            [T.Resize(self.shape), T.Normalize(0, 255)]
+            [T.Resize(self.shape, antialias=True), T.Normalize(0, 255)]
         )
         observation = transforms(observation).squeeze(0)
         return observation
+    
+def make_env(env_name,render_mode):
+  env = gym.make(env_name,render_mode=render_mode)
+
+  env = SkipFrame(env, skip=4)
+  env = GrayScaleObservation(env)
+  env = ResizeObservation(env, shape=84)
+  env = FrameStack(env, num_stack=4)
+  return env

@@ -1,20 +1,28 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Linear
 
 class DQN_CNN_Model(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self,  env_inputs, n_actions):
         super(DQN_CNN_Model, self).__init__()
-        self.l1 = Linear(input_dim, 64)
-        self.l2 = Linear(64, 128)
-        self.l3 = Linear(128, 128)
-        self.l4 = Linear(128, 64)
-        self.out = Linear(64, output_dim)
+        in_channels, in_height, in_width = env_inputs
+        self.first_layer = nn.Sequential(
+            nn.Conv2d(in_channels, 64, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1),
+            nn.ReLU()
+        )
 
-    def forward(self, x):
-        pred = torch.relu(self.l1(x))
-        pred = torch.relu(self.l2(pred))
-        pred = torch.relu(self.l3(pred))
-        pred = torch.relu(self.l4(pred))
-        return self.out(pred)
+        self.pool = nn.MaxPool2d(2, 2)
+
+        self.out_layer = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * 2 * 2, 256),
+            nn.Linear(256, n_actions)
+        )
+
+    def forward(self, env_input):
+        x = self.first_layer(env_input)
+        x = self.pool(x)
+        x = self.out_layer(x)
+        return x
