@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from replay_memory import ReplayMemory, Transition
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
 import numpy as np
 from abstract_agent import Agent
@@ -51,14 +51,41 @@ class DQNAgent(Agent):
             rewards = torch.cat(batch.reward).to(self.device)
             dones = torch.cat(batch.done).to(self.device)
             next_states = torch.cat(batch.next_state).to(self.device)
+
+            
+            print("-----------------------------------------------")
             
             target_policy = self.policy if self.target_policy is None else self.target_policy
-            next_values = (self.gamma * target_policy(next_states).detach().max(1).values * (1 - dones)) + rewards
 
-            q_values = self.policy(states).gather(1, actions)
+            preds = target_policy(next_states)
+            print(f"P0 {preds} - {preds.shape}")
+            preds = preds.max(1)[0].detach()
+            print(f"P1 {preds} - {preds.shape}")
+            preds = self.gamma * preds
+            print(f"P2 {preds} - {preds.shape}")
+            preds = preds * (1-dones)
+            print(f"P3 {preds} - {preds.shape}")
+            preds = preds + rewards
+            print(f"P4 {preds} - {preds.shape}")
+            next_values = preds
+
+            print("-----------------------------------------------")
+
+            print(f"States {states} - {states.shape}")
+            print(f"Actions {actions} - {actions.shape}")
+            print(f"Rewards {rewards} - {rewards.shape}")
+            print(f"Dones {dones} - {dones.shape}")
+            print(f"Next states {next_states} - {next_states.unsqueeze(1).shape}")
+            print(f"Next values {next_values} - {next_values.shape}")
+
+            q_values = self.policy(states)
+            print(f"Q-values {q_values} - {q_values.shape}")
+            q_values = q_values.gather(1, actions)
 
             # Compute el costo y actualice los pesos.
-            loss = F.smooth_l1_loss(q_values, next_values.unsqueeze(1))
+            print(f"Q-values {q_values} - {q_values.shape}")
+
+            loss = F.mse_loss(q_values, next_values.unsqueeze(1))
 
             loss.backward()
             nn.utils.clip_grad_value_(self.policy.parameters(), 100)

@@ -4,7 +4,7 @@ import numpy as np
 from replay_memory import ReplayMemory, Transition
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from utils import show_video
 
 class Agent(ABC):
@@ -36,7 +36,7 @@ class Agent(ABC):
       self.epsilon = self.epsilon_i
       rewards = []
       total_steps = 0
-      writer = SummaryWriter(comment="-" + writer_name)
+      #writer = SummaryWriter(comment="-" + writer_name)
 
       for ep in tqdm(range(number_episodes), unit=' episodes'):
         if total_steps > max_steps:
@@ -60,6 +60,13 @@ class Agent(ABC):
             
             reward = torch.tensor([reward], device=self.device)
 
+            print(f"States {state} -")
+            print(f"Actions {action.item()} -")
+            print(f"Rewards {reward} -")
+            print(f"Dones {done} -")
+            print(f"Next states {obs} -")
+
+
             # Guardar la transicion en la memoria
             self.memory.push(state, action, reward, torch.tensor([done], dtype=torch.float16), next_state)
             # Actualizar el estado
@@ -73,9 +80,9 @@ class Agent(ABC):
 
         rewards.append(current_episode_reward)
         mean_reward = np.mean(rewards[-100:])
-        writer.add_scalar("epsilon", self.epsilon, total_steps)
-        writer.add_scalar("reward_100", mean_reward, total_steps)
-        writer.add_scalar("reward", current_episode_reward, total_steps)
+        #writer.add_scalar("epsilon", self.epsilon, total_steps)
+        #writer.add_scalar("reward_100", mean_reward, total_steps)
+        #writer.add_scalar("reward", current_episode_reward, total_steps)
 
         # Report on the traning rewards every EPISODE BLOCK episodes
         if ep % self.episode_block == 0:
@@ -84,7 +91,7 @@ class Agent(ABC):
       print(f"Episode {ep + 1} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
 
       #torch.save(self.policy_net.state_dict(), "GenericDQNAgent.dat")
-      writer.close()
+      #writer.close()
 
       return rewards
     
