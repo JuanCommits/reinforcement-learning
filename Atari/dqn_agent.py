@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from replay_memory import ReplayMemory, Transition
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
 import numpy as np
 from abstract_agent import Agent
@@ -43,26 +43,47 @@ class DQNAgent(Agent):
             transitions = self.memory.sample(self.batch_size)
             batch = Transition(*zip(*transitions))
 
-            # Enviar los tensores al dispositivo correspondiente.
             states = torch.cat(batch.state)
             actions = torch.cat(batch.action)
             rewards = torch.cat(batch.reward)
             dones = torch.cat(batch.done)
             next_states = torch.cat(batch.next_state)
 
+            #print("-----------------------------------------------")
+
             q_values = self.policy(states).gather(1, actions)
-            
-            next_states_values = self.policy(next_states).max(1).values.detach() if self.target_policy is None \
-                                      else self.target_policy(next_states).max(1).values
-            next_values = (self.gamma * next_states_values * (1 - dones)) + rewards
 
             # Compute el costo y actualice los pesos.
-            criterion = nn.SmoothL1Loss()
-            loss = criterion(q_values, next_values.unsqueeze(1))
+            #print(f"Q-values {q_values} - {q_values.shape}")
+
+            preds = self.policy(next_states) if self.target_policy is None \
+                                      else self.target_policy(next_states)
+            #print(f"P0 {preds} - {preds.shape}")
+            preds = preds.max(1)[0].detach()
+            #print(f"P1 {preds} - {preds.shape}")
+            preds = self.gamma * preds
+            #print(f"P2 {preds} - {preds.shape}")
+            preds = preds * (1-dones)
+            #print(f"P3 {preds} - {preds.shape}")
+            preds = preds + rewards
+            #print(f"P4 {preds} - {preds.shape}")
+            next_values = preds
+
+            #if sum(dones) > 0:
+              #print(f"States {states} - {states.shape}")
+              #print(f"Actions {actions} - {actions.shape}")
+              #print(f"Rewards {rewards} - {rewards.shape}")
+              #print(f"Dones {dones} - {dones.shape}")
+              #print(f"Next states {next_states} - {next_states.unsqueeze(1).shape}")
+              #print(f"Next values {next_values} - {next_values.shape}")
+
+            #print("-----------------------------------------------")
+
+            loss = F.mse_loss(q_values, next_values.unsqueeze(1))
 
             optimizer.zero_grad()
             loss.backward()
-            
+
             nn.utils.clip_grad_value_(self.policy.parameters(), 100)
             optimizer.step()
             # En Pytorch la funcion de costo se llaman con (predicciones, objetivos) en ese orden.

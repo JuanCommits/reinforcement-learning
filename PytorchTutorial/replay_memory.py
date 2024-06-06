@@ -2,7 +2,8 @@ import random
 from collections import namedtuple, deque
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('state', 'action', 'next_state', 'reward', 
+                         'next_state_wo_none', 'done'))
 
 
 class ReplayMemory(object):

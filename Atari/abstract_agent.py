@@ -1,11 +1,18 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import math
+import matplotlib
+import matplotlib.pyplot as plt
 from replay_memory import ReplayMemory, Transition
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from utils import show_video
+is_ipython = 'inline' in matplotlib.get_backend()
+if is_ipython:
+    from IPython import display
+
 
 class Agent(ABC):
     def __init__(self, gym_env, obs_processing_func, memory_buffer_size, batch_size, learning_rate, gamma,
@@ -36,9 +43,9 @@ class Agent(ABC):
       self.epsilon = self.epsilon_i
       rewards = []
       total_steps = 0
-      writer = SummaryWriter(comment="-" + writer_name)
+      #writer = SummaryWriter(comment="-" + writer_name)
 
-      for ep in tqdm(range(number_episodes), unit=' episodes'):
+      for ep in range(number_episodes):
         if total_steps > max_steps:
             break
         
@@ -61,36 +68,63 @@ class Agent(ABC):
             reward = torch.tensor([reward], device=self.device)
 
             # Guardar la transicion en la memoria
-            self.memory.push(state, action, reward, torch.tensor([done], dtype=torch.float16), next_state)
+            self.memory.push(state, action, reward, torch.tensor([done], dtype=torch.float16, device=self.device), next_state)
             # Actualizar el estado
             state = next_state
 
             # Actualizar el modelo
             self.update_weights(total_steps)
 
-            if done: 
+            if done:
+                self.plot_durations(rewards)
                 break
 
         rewards.append(current_episode_reward)
         mean_reward = np.mean(rewards[-100:])
-        writer.add_scalar("epsilon", self.epsilon, total_steps)
-        writer.add_scalar("reward_100", mean_reward, total_steps)
-        writer.add_scalar("reward", current_episode_reward, total_steps)
+        #writer.add_scalar("epsilon", self.epsilon, total_steps)
+        #writer.add_scalar("reward_100", mean_reward, total_steps)
+        #writer.add_scalar("reward", current_episode_reward, total_steps)
 
         # Report on the traning rewards every EPISODE BLOCK episodes
-        if ep % self.episode_block == 0:
-          print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
+        #if ep % self.episode_block == 0:
+          #print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
 
-      print(f"Episode {ep + 1} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
+      #print(f"Episode {ep + 1} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
 
       #torch.save(self.policy_net.state_dict(), "GenericDQNAgent.dat")
-      writer.close()
+      #writer.close()
 
       return rewards
     
+    def plot_durations(self, episode_durations, show_result=False):
+        plt.figure(1)
+        durations_t = torch.tensor(episode_durations, dtype=torch.float)
+        if show_result:
+            plt.title('Result')
+        else:
+            plt.clf()
+            plt.title('Training...')
+        plt.xlabel('Episode')
+        plt.ylabel('Duration')
+        plt.plot(durations_t.numpy())
+        plt.legend()
+        # Take 100 episode averages and plot them too
+        if len(durations_t) >= 100:
+            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+            means = torch.cat((torch.zeros(99), means))
+            plt.plot(means.numpy())
+
+        plt.pause(0.001)  # pause a bit so that plots are updated
+        if is_ipython:
+            if not show_result:
+                display.display(plt.gcf())
+                display.clear_output(wait=True)
+            else:
+                display.display(plt.gcf())
+    
     def compute_epsilon(self, steps):
         if self.epsilon_decay is not None:
-            return self.epsilon_f + (self.epsilon_i - self.epsilon_f) * np.exp(-1. * steps * (1-self.epsilon_decay))
+            return self.epsilon_f + (self.epsilon_i - self.epsilon_f) * math.exp(-1. * steps / self.epsilon_decay)
         elif self.epsilon_anneal is not None:
             return max(self.epsilon_f, self.epsilon_i - (self.epsilon_i - self.epsilon_f) * min(1.0, steps / self.epsilon_anneal))
         return self.epsilon_f

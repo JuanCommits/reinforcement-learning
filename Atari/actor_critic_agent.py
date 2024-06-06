@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from replay_memory import ReplayMemory, Transition
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
 import numpy as np
 from abstract_agent import Agent
@@ -20,11 +20,7 @@ class ActorCriticAgent(Agent):
         self.critic = critic_model.to(self.device)
             
     def select_action(self, state, current_steps=0, train=True):
-      self.epsilon = self.compute_epsilon(current_steps)
-      if train and random.random() < self.epsilon:
-            return torch.tensor([[self.env.action_space.sample()]], device=self.device, dtype=torch.long)
-      else:
-            return self.actor(state).max(1).indices.view(1, 1)
+        return torch.multinomial(self.actor(state), 1)
       
     def get_optimizer(self):
         return torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate), \
@@ -49,14 +45,15 @@ class ActorCriticAgent(Agent):
 
             # Update actor weights
             actor_optimizer.zero_grad()
-            loss = -torch.log(self.actor(states).gather(1, actions)) * (rewards + self.gamma * next_state_val - state_val).detach()
+            delta = rewards + self.gamma * next_state_val - state_val
+            loss = -torch.log(self.actor(states).gather(1, actions)) * delta.detach()
             loss.backward()
             nn.utils.clip_grad_value_(self.actor.parameters(), 100)
             actor_optimizer.step()
 
             # Update critic weights
             critic_optimizer.zero_grad()
-            critic_loss = F.mse_loss(rewards + self.gamma * next_state_val, state_val)
+            critic_loss = F.mse_loss(rewards + self.gamma * next_state_val.detach(), state_val)
             critic_loss.backward()
             critic_optimizer.step()
             # En Pytorch la funcion de costo se llaman con (predicciones, objetivos) en ese orden.
