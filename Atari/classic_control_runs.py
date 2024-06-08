@@ -10,7 +10,8 @@ import time
 
 from dqn_model import DQN_Model
 from dqn_agent import DQNAgent
-from utils import show_video, wrap_env
+from dqn_cnn_model import DQN_CNN_Model
+from utils import show_video, wrap_env, SkipFrame
 from tqdm import tqdm
 
 # Seed for reproducibility
@@ -44,12 +45,18 @@ def main(iterations):
 def make_run():
     wandb.init()
     env = gymnasium.make(wandb.config.env, render_mode='rgb_array')
-    input_dim = env.observation_space.shape[0]
+    input_dim = env.observation_space.shape
     output_dim = env.action_space.n
 
-    net = DQN_Model(input_dim, output_dim).to(DEVICE)
+    if wandb.config.env == "ALE/Galaxian-v4":
+        env = SkipFrame(env, 4)
+        env = wrap_env(env)
+    else:
+        input_dim = input_dim[0]
 
     config = wandb.config
+
+    net = get_model(config, input_dim, output_dim)
 
     agent = DQNAgent(env, net, process_state, config.buffer_size, config.batch_size, 
                 config.lr, config.gamma, epsilon_i=config.eps_i, 
@@ -68,6 +75,13 @@ def get_api_key():
     config = configparser.ConfigParser()
     config.read('config.ini')
     return config.get('wandb', 'api-key')
+
+def get_model(model_config: dict, input_dim, output_dim):
+    if model_config.get('model', "FF") == "CNN":
+        return DQN_CNN_Model(input_dim, output_dim).to(DEVICE)
+    else:
+        return DQN_Model(input_dim, output_dim).to(DEVICE)
+        
 
 if __name__ == '__main__':
     args = sys.argv
