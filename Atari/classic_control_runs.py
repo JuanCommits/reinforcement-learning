@@ -56,7 +56,7 @@ def make_run():
                 epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
                 episode_block=EPISODE_BLOCK, device=DEVICE, second_model_update=config.target_update_steps)
 
-    agent.train(env.episodes, config.max_total_steps, use_wandb=True)
+    agent.train(config.episodes, config.max_total_steps, use_wandb=True)
     
     video_name = f"agent-{time.time()}"
     agent.make_video(video_name, show=True)
