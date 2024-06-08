@@ -1,0 +1,43 @@
+project: Galaxian
+name: Galaxian_1
+method: random
+metric:
+    name: Mean Reward
+    goal: maximize
+parameters:
+  env: 
+    value: 'ALE/Galaxian-v5'
+  algo:
+    value: 'DQN'
+  model:
+    value: 'CNN'
+  lr:
+    min: 0.00008
+    max: 0.0001
+  gamma:
+    min: .98
+    max: .99
+  eps_i:
+    min: .8
+    max: 1.
+  eps_f:
+    min: .002
+    max: .1
+  eps_decay:
+    min: 10000
+    max: 100000
+  buffer_size:
+    min: 1000
+    max: 10000
+  batch_size:
+    values: [32, 64]
+  episodes: 
+    values: [500, 800, 1000]
+  steps_per_episode:
+    value: 10000
+  max_total_steps:
+    value: 10000000
+  target_update_steps:
+    values: [100, 300, 500]
+  optimizer:
+    value: 'Adam'  

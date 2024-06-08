@@ -11,7 +11,7 @@ import time
 from dqn_model import DQN_Model
 from dqn_agent import DQNAgent
 from dqn_cnn_model import DQN_CNN_Model
-from utils import show_video, wrap_env, SkipFrame
+from utils import show_video, wrap_env, make_env
 from tqdm import tqdm
 
 # Seed for reproducibility
@@ -30,10 +30,13 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = 'jpds_mm'
 PROJECT = 'Reinforcement Learning'
-SWEEP_ID = 'sm5120zd'
+SWEEP_ID = 'sqqkm83x'
 
 def process_state(obs, device):
     return torch.tensor(obs, device=device).unsqueeze(0)
+
+def process_packed_state(obs, device):
+    return torch.tensor(obs[:], device=device).unsqueeze(0)
 
 def main(iterations):
     print(f"Running {iterations} iterations on device {DEVICE}.")
@@ -44,21 +47,23 @@ def main(iterations):
 
 def make_run():
     wandb.init()
-    env = gymnasium.make(wandb.config.env, render_mode='rgb_array')
-    input_dim = env.observation_space.shape
-    output_dim = env.action_space.n
 
-    if wandb.config.env == "ALE/Galaxian-v4":
-        env = SkipFrame(env, 4)
-        env = wrap_env(env)
+    if wandb.config.env == "ALE/Galaxian-v5":
+        env = make_env(wandb.config.env, "rgb_array")
+        process_state_function = process_packed_state
+        input_dim = env.observation_space.shape
     else:
-        input_dim = input_dim[0]
+        env = gymnasium.make(wandb.config.env, render_mode='rgb_array')
+        input_dim = env.observation_space.shape[0]
+        process_state_function = process_state
+
+    output_dim = env.action_space.n
 
     config = wandb.config
 
     net = get_model(config, input_dim, output_dim)
 
-    agent = DQNAgent(env, net, process_state, config.buffer_size, config.batch_size, 
+    agent = DQNAgent(env, net, process_state_function, config.buffer_size, config.batch_size, 
                 config.lr, config.gamma, epsilon_i=config.eps_i, 
                 epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
                 episode_block=EPISODE_BLOCK, device=DEVICE, second_model_update=config.target_update_steps)
