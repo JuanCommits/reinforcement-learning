@@ -4,3 +4,5 @@ videos/
 video/
 assets/
 *.dat
+config*
+wandb/

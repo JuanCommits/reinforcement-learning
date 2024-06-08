@@ -34,11 +34,11 @@ def show_video():
     
      
 
-def wrap_env(env):
+def wrap_env(env, name="default"):
     """
     Wrapper del ambiente donde definimos un Monitor que guarda la visualizacion como un archivo de video.
     """
-    env = RecordVideo(env, "./video/", episode_trigger=lambda x: x % 2 == 0)
+    env = RecordVideo(env, "./video/", name_prefix=name, episode_trigger=lambda x: x % 2 == 0)
     return env
 
    
