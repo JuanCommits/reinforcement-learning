@@ -81,7 +81,7 @@ class Agent(ABC):
                 break
 
         rewards.append(current_episode_reward)
-        mean_reward = np.mean(rewards[-100:])
+        mean_reward = np.mean(rewards[-self.episode_block:])
 
         # Report on the traning rewards every EPISODE BLOCK episodes
         if ep % self.episode_block == 0:
