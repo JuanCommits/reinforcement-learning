@@ -10,6 +10,7 @@ import time
 
 from dqn_model import DQN_Model
 from dqn_agent import DQNAgent
+from double_dqn_agent import DoubleDQNAgent
 from dqn_cnn_model import DQN_CNN_Model
 from utils import show_video, wrap_env, make_env
 from tqdm import tqdm
@@ -30,7 +31,7 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = 'jpds_mm'
 PROJECT = 'Reinforcement Learning'
-SWEEP_ID = 'sqqkm83x'
+SWEEP_ID = '7wsxvgmr'
 
 def process_state(obs, device):
     return torch.tensor(obs, device=device).unsqueeze(0)
@@ -63,10 +64,17 @@ def make_run():
 
     net = get_model(config, input_dim, output_dim)
 
-    agent = DQNAgent(env, net, process_state_function, config.buffer_size, config.batch_size, 
-                config.lr, config.gamma, epsilon_i=config.eps_i, 
-                epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
-                episode_block=EPISODE_BLOCK, device=DEVICE, second_model_update=config.target_update_steps)
+    if config.algo == "DQN":
+        agent = DQNAgent(env, net, process_state_function, config.buffer_size, config.batch_size, 
+                    config.lr, config.gamma, epsilon_i=config.eps_i, 
+                    epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
+                    episode_block=EPISODE_BLOCK, device=DEVICE, second_model_update=config.target_update_steps)
+    elif config.algo == "DDQN":
+        net2 = get_model(config, input_dim, output_dim)
+        agent = DoubleDQNAgent(env, net, net2, process_state_function, config.buffer_size, config.batch_size, 
+                    config.lr, config.gamma, epsilon_i=config.eps_i, 
+                    epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
+                    episode_block=EPISODE_BLOCK, device=DEVICE)
 
     agent.train(config.episodes, config.max_total_steps, use_wandb=True)
     
