@@ -95,6 +95,9 @@ class Agent(ABC):
 
       return rewards
     
+    def save_model(self, path):
+        pass
+    
     def play(self, env=None):
         if env is None:
             env = self.env

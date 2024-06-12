@@ -1,14 +1,15 @@
 import torch
+import random
+import time
+import copy
+import wandb
+
 import torch.nn as nn
 import torch.nn.functional as F
-from replay_memory import ReplayMemory, Transition
-#from torch.utils.tensorboard import SummaryWriter
+
 from tqdm.notebook import tqdm
-import numpy as np
 from abstract_agent import Agent
-import random
-from dqn_model import DQN_Model
-import copy
+from replay_memory import Transition
 
 class DQNAgent(Agent):
     def __init__(self, env, model, obs_processing_func, memory_buffer_size, batch_size,
@@ -62,4 +63,11 @@ class DQNAgent(Agent):
 
             if self.second_model_update is not None and total_steps % self.second_model_update == 0:
                 self.target_policy.load_state_dict(self.policy.state_dict())
+
+    def save_model(self, on_wandb=False):
+        timestamp = time.time()
+        path = f"model_{timestamp}.pt"
+        torch.save(self.policy.state_dict(), path)
+        if on_wandb:
+            wandb.save(path)
             

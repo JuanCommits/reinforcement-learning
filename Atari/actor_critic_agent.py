@@ -1,26 +1,31 @@
 import torch
+import random
+import wandb
+import time
+
 import torch.nn as nn
 import torch.nn.functional as F
-from replay_memory import ReplayMemory, Transition
-#from torch.utils.tensorboard import SummaryWriter
+
 from tqdm.notebook import tqdm
-import numpy as np
 from abstract_agent import Agent
-import random
-from dqn_model import DQN_Model
+from replay_memory import Transition
 
 class ActorCriticAgent(Agent):
     def __init__(self, env, model, obs_processing_func, memory_buffer_size, batch_size,
-                  learning_rate, gamma, epsilon_i, epsilon_f, epsilon_anneal_time,
+                  learning_rate, gamma, epsilon_i, epsilon_f,
                     epsilon_decay, episode_block, critic_model, device='cpu'):
         super().__init__(env, obs_processing_func, memory_buffer_size, batch_size,
-                          learning_rate, gamma, epsilon_i, epsilon_f, epsilon_anneal_time,
+                          learning_rate, gamma, epsilon_i, epsilon_f,
                             epsilon_decay, episode_block, device)
         self.actor = model.to(self.device)
         self.critic = critic_model.to(self.device)
             
     def select_action(self, state, current_steps=0, train=True):
-        return torch.multinomial(self.actor(state), 1)
+        try:
+          return torch.multinomial(self.actor(state), 1)
+        except:
+          print(self.actor(state))
+          
       
     def get_optimizer(self):
         return torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate), \
@@ -46,7 +51,7 @@ class ActorCriticAgent(Agent):
             # Update actor weights
             actor_optimizer.zero_grad()
             delta = rewards + self.gamma * next_state_val - state_val
-            loss = -torch.log(self.actor(states).gather(1, actions)) * delta.detach()
+            loss = (-torch.log(self.actor(states).gather(1, actions)) * delta.detach()).mean()
             loss.backward()
             nn.utils.clip_grad_value_(self.actor.parameters(), 100)
             actor_optimizer.step()
@@ -57,6 +62,16 @@ class ActorCriticAgent(Agent):
             critic_loss.backward()
             critic_optimizer.step()
             # En Pytorch la funcion de costo se llaman con (predicciones, objetivos) en ese orden.
+
+    def save_model(self, on_wandb=False):
+        timestamp = time.time()
+        actor_path = f'actor-{timestamp}.pth'
+        critic_path = f'critic-{timestamp}.pth'
+        torch.save(self.actor.state_dict(), actor_path)
+        torch.save(self.critic.state_dict(), critic_path)
+        if on_wandb:
+            wandb.save(actor_path)
+            wandb.save(critic_path)
 
             
             
