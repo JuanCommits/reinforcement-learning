@@ -31,7 +31,7 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = 'jpds_mm'
 PROJECT = 'Reinforcement Learning'
-SWEEP_ID = '7wsxvgmr'
+SWEEP_ID = 'wxgcq06z'
 
 def process_state(obs, device):
     return torch.tensor(obs, device=device).unsqueeze(0)
