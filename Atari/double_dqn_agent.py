@@ -48,14 +48,11 @@ class DoubleDQNAgent(Agent):
             if use_model_a:
                 q_values = self.policy(states).gather(1, actions)
                 optimizer = self.get_optimizer(self.policy.parameters())
-                next_actions = self.policy(next_states).argmax(1)
-                preds = self.policy2(next_states).gather(1, next_actions)
-
+                preds = self.policy2(next_states)
             else:
                 q_values = self.policy2(states).gather(1, actions)
                 optimizer = self.get_optimizer(self.policy2.parameters())
-                next_actions = self.policy(next_states).argmax(1)
-                preds = self.policy2(next_states).gather(1, next_actions)
+                preds = self.policy(next_states)
             
             next_values = rewards + (self.gamma * preds.max(1)[0].detach() * (1-dones))
             
