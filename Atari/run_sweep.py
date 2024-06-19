@@ -11,6 +11,7 @@ import time
 from dqn_model import DQN_Model
 from dqn_agent import DQNAgent
 from double_dqn_agent import DoubleDQNAgent
+from actor_critic_agent import ActorCriticAgent
 from dqn_cnn_model import DQN_CNN_Model
 from utils import show_video, wrap_env, make_env
 from tqdm import tqdm
@@ -75,6 +76,13 @@ def make_run():
                     config.lr, config.gamma, epsilon_i=config.eps_i, 
                     epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
                     episode_block=EPISODE_BLOCK, device=DEVICE)
+    elif config.algo == "AC":
+        actor = get_model(config, input_dim, output_dim, is_actor=True)
+        critic = get_model(config, input_dim, 1)
+        agent = ActorCriticAgent(env, actor, process_state_function, config.buffer_size, config.batch_size, 
+                    config.lr, config.gamma, epsilon_i=config.eps_i, 
+                    epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
+                    episode_block=EPISODE_BLOCK, critic_model=critic, actor_lr=config.actor_lr, device=DEVICE)
 
     agent.train(config.episodes, config.max_total_steps, use_wandb=True)
     
@@ -89,11 +97,11 @@ def get_api_key():
     config.read('config.ini')
     return config.get('wandb', 'api-key')
 
-def get_model(model_config: dict, input_dim, output_dim):
+def get_model(model_config: dict, input_dim, output_dim, is_actor=False):
     if model_config.get('model', "FF") == "CNN":
-        return DQN_CNN_Model(input_dim, output_dim).to(DEVICE)
+        return DQN_CNN_Model(input_dim, output_dim, is_actor).to(DEVICE)
     else:
-        return DQN_Model(input_dim, output_dim).to(DEVICE)
+        return DQN_Model(input_dim, output_dim, is_actor).to(DEVICE)
         
 
 if __name__ == '__main__':

@@ -31,6 +31,7 @@ class Agent(ABC):
         self.batch_size = batch_size
         self.gamma = gamma
         self.learning_rate = learning_rate
+        self.random_states = 60
 
         self.epsilon_i = epsilon_i
         self.epsilon_f = epsilon_f
@@ -39,11 +40,18 @@ class Agent(ABC):
         self.episode_block = episode_block
 
         self.total_steps = 0
+
+    def get_random_states(self):
+        states = []
+        for _ in range(self.random_states):
+            states.append(self.env.observation_space.sample())
+        return torch.tensor(states)
     
     def train(self, number_episodes = 50000, max_steps=1000000, use_wandb=False):
       self.epsilon = self.epsilon_i
       rewards = []
       total_steps = 0
+      states = self.get_random_states()
       #writer = SummaryWriter(comment="-" + writer_name)
 
       for ep in tqdm(range(number_episodes), unit='episode'):
@@ -82,13 +90,14 @@ class Agent(ABC):
 
         rewards.append(current_episode_reward)
         mean_reward = np.mean(rewards[-self.episode_block:])
+        mean_values = np.mean(self.get_values(states))
 
         # Report on the traning rewards every EPISODE BLOCK episodes
         if ep % self.episode_block == 0:
             if use_wandb:
-                wandb.log({"Mean Reward": mean_reward, "Epsilon": self.compute_epsilon(total_steps), "Total Steps": total_steps, "Episode": ep})
+                wandb.log({"Mean Reward": mean_reward, "Epsilon": self.compute_epsilon(total_steps), "Total Steps": total_steps, "Episode": ep, "Mean Value": mean_values})
             else:
-                print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {np.mean(rewards[-self.episode_block:])} epsilon {self.epsilon} total steps {total_steps}")
+                print(f"Episode {ep} - Avg. Reward over the last {self.episode_block} episodes {mean_reward} epsilon {self.epsilon} total steps {total_steps} mean value {mean_values}")
 
       #torch.save(self.policy_net.state_dict(), "GenericDQNAgent.dat")
       #writer.close()

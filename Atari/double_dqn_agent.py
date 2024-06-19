@@ -30,6 +30,9 @@ class DoubleDQNAgent(Agent):
     def get_optimizer(self, parameters):
         return torch.optim.Adam(parameters, lr=self.learning_rate)
     
+    def get_values(self, states):
+        return (self.policy(states) + self.policy2(states)).mean(1)
+    
     def update_weights(self, total_steps):
         if len(self.memory) > self.batch_size:
             transitions = self.memory.sample(self.batch_size)
@@ -45,11 +48,14 @@ class DoubleDQNAgent(Agent):
             if use_model_a:
                 q_values = self.policy(states).gather(1, actions)
                 optimizer = self.get_optimizer(self.policy.parameters())
-                preds = self.policy2(next_states)
+                next_actions = self.policy(next_states).argmax(1)
+                preds = self.policy2(next_states).gather(1, next_actions)
+
             else:
                 q_values = self.policy2(states).gather(1, actions)
                 optimizer = self.get_optimizer(self.policy2.parameters())
-                preds = self.policy(next_states)
+                next_actions = self.policy(next_states).argmax(1)
+                preds = self.policy2(next_states).gather(1, next_actions)
             
             next_values = rewards + (self.gamma * preds.max(1)[0].detach() * (1-dones))
             
