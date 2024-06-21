@@ -44,8 +44,8 @@ class Agent(ABC):
     def get_random_states(self):
         states = []
         for _ in range(self.random_states):
-            states.append(self.state_processing_function(self.env.observation_space.sample(), self.device))
-        return torch.cat(states)
+            states.append(self.env.observation_space.sample())
+        return torch.tensor(states).to(torch.float32)
     
     def train(self, number_episodes = 50000, max_steps=1000000, use_wandb=False):
       self.epsilon = self.epsilon_i
@@ -90,7 +90,7 @@ class Agent(ABC):
 
         rewards.append(current_episode_reward)
         mean_reward = np.mean(rewards[-self.episode_block:])
-        mean_values = np.mean(self.get_values(states))
+        mean_values = torch.mean(self.get_values(states)).item()
 
         # Report on the traning rewards every EPISODE BLOCK episodes
         if ep % self.episode_block == 0:
