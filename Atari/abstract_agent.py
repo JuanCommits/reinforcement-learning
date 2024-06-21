@@ -45,7 +45,7 @@ class Agent(ABC):
         states = []
         for _ in range(self.random_states):
             states.append(self.env.observation_space.sample())
-        return torch.tensor(states)
+        return torch.tensor(states).to(torch.float32)
     
     def train(self, number_episodes = 50000, max_steps=1000000, use_wandb=False):
       self.epsilon = self.epsilon_i
