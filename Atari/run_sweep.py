@@ -32,7 +32,7 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = 'jpds_mm'
 PROJECT = 'Reinforcement Learning'
-SWEEP_ID = 'x5xja2xw'
+SWEEP_ID = 'hk5wuusp'
 
 def process_state(obs, device):
     return torch.tensor(obs, device=device).unsqueeze(0).to(torch.float32)

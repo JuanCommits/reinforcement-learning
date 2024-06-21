@@ -90,7 +90,7 @@ class Agent(ABC):
 
         rewards.append(current_episode_reward)
         mean_reward = np.mean(rewards[-self.episode_block:])
-        mean_values = torch.mean(self.get_values(states)).item()
+        mean_values = torch.mean(self.get_values(states.to(self.device))).item()
 
         # Report on the traning rewards every EPISODE BLOCK episodes
         if ep % self.episode_block == 0:

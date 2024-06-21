@@ -36,7 +36,11 @@ class DQNAgent(Agent):
         return torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
     
     def get_values(self, state):
-        return self.target_policy(state)
+        if self.target_policy is None:
+            return self.policy(state)
+        r = self.target_policy(state)
+        print(r)
+        return r
 
     def update_weights(self, total_steps):
       optimizer = self.get_optimizer()
