@@ -13,7 +13,7 @@ from dqn_agent import DQNAgent
 from double_dqn_agent import DoubleDQNAgent
 from actor_critic_agent import ActorCriticAgent
 from dqn_cnn_model import DQN_CNN_Model
-from utils import show_video, wrap_env, make_env
+from utils import make_env
 from tqdm import tqdm
 
 # Seed for reproducibility
@@ -32,13 +32,13 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = 'jpds_mm'
 PROJECT = 'Reinforcement Learning'
-SWEEP_ID = 'wxgcq06z'
+SWEEP_ID = 'x5xja2xw'
 
 def process_state(obs, device):
-    return torch.tensor(obs, device=device).unsqueeze(0)
+    return torch.tensor(obs, device=device).unsqueeze(0).to(torch.float32)
 
 def process_packed_state(obs, device):
-    return torch.tensor(obs[:], device=device).unsqueeze(0)
+    return torch.tensor(obs[:], device=device).unsqueeze(0).to(torch.float32)
 
 def main(iterations):
     print(f"Running {iterations} iterations on device {DEVICE}.")
@@ -80,8 +80,8 @@ def make_run():
         actor = get_model(config, input_dim, output_dim, is_actor=True)
         critic = get_model(config, input_dim, 1)
         agent = ActorCriticAgent(env, actor, process_state_function, config.buffer_size, config.batch_size, 
-                    config.lr, config.gamma, epsilon_i=config.eps_i, 
-                    epsilon_f=config.eps_f, epsilon_decay=config.eps_decay, 
+                    config.critic_lr, config.gamma, epsilon_i=1, 
+                    epsilon_f=.1, epsilon_decay=1,
                     episode_block=EPISODE_BLOCK, critic_model=critic, actor_lr=config.actor_lr, device=DEVICE)
 
     agent.train(config.episodes, config.max_total_steps, use_wandb=True)
