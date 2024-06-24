@@ -32,7 +32,7 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = "jpds_mm"
 PROJECT = "Reinforcement Learning"
-SWEEP_ID = "t8xf70wy"
+SWEEP_ID = "evzs46jy"
 
 
 def process_state(obs, device):
