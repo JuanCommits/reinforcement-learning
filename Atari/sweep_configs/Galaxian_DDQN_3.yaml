@@ -32,7 +32,7 @@ parameters:
   batch_size:
     values: [16, 32, 64, 128]
   episodes: 
-    values: [1500, 2000, 2500, 3000]
+    values: [1500, 2000, 2500, 3000, 4000]
   steps_per_episode:
     value: 10000
   max_total_steps:
