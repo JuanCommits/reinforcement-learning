@@ -11,8 +11,9 @@ import time
 from dqn_model import DQN_Model
 from dqn_agent import DQNAgent
 from double_dqn_agent import DoubleDQNAgent
+from actor_critic_agent import ActorCriticAgent
 from dqn_cnn_model import DQN_CNN_Model, DQN_CNN_Model_Paper
-from utils import show_video, wrap_env, make_env
+from utils import make_env
 from tqdm import tqdm
 
 # Seed for reproducibility
@@ -31,15 +32,15 @@ VIDEO_FOLDER = "./video/"
 # Settings
 ENTITY = "jpds_mm"
 PROJECT = "Reinforcement Learning"
-SWEEP_ID = "v3lw846v"
+SWEEP_ID = "hk5wuusp"
 
 
 def process_state(obs, device):
-    return torch.tensor(obs, device=device).unsqueeze(0)
+    return torch.tensor(obs, device=device).unsqueeze(0).to(torch.float32)
 
 
 def process_packed_state(obs, device):
-    return torch.tensor(obs[:], device=device).unsqueeze(0)
+    return torch.tensor(obs[:], device=device).unsqueeze(0).to(torch.float32)
 
 
 def main(iterations):
@@ -103,6 +104,25 @@ def make_run():
             episode_block=EPISODE_BLOCK,
             device=DEVICE,
         )
+    elif config.algo == "AC":
+        actor = get_model(config, input_dim, output_dim, is_actor=True)
+        critic = get_model(config, input_dim, 1)
+        agent = ActorCriticAgent(
+            env,
+            actor,
+            process_state_function,
+            config.buffer_size,
+            config.batch_size,
+            config.critic_lr,
+            config.gamma,
+            epsilon_i=1,
+            epsilon_f=0.1,
+            epsilon_decay=1,
+            episode_block=EPISODE_BLOCK,
+            critic_model=critic,
+            actor_lr=config.actor_lr,
+            device=DEVICE,
+        )
 
     agent.train(config.episodes, config.max_total_steps, use_wandb=True)
 
@@ -119,13 +139,13 @@ def get_api_key():
     return config.get("wandb", "api-key")
 
 
-def get_model(model_config: dict, input_dim, output_dim):
+def get_model(model_config: dict, input_dim, output_dim, is_actor=False):
     if model_config.get("model", "FF") == "CNN":
-        return DQN_CNN_Model(input_dim, output_dim).to(DEVICE)
+        return DQN_CNN_Model(input_dim, output_dim, is_actor).to(DEVICE)
     elif model_config.get("model", "FF") == "CNN Paper":
         return DQN_CNN_Model_Paper(input_dim, output_dim).to(DEVICE)
     else:
-        return DQN_Model(input_dim, output_dim).to(DEVICE)
+        return DQN_Model(input_dim, output_dim, is_actor).to(DEVICE)
 
 
 if __name__ == "__main__":

@@ -4,8 +4,9 @@ import torch.nn.functional as F
 
 
 class DQN_CNN_Model(nn.Module):
-    def __init__(self, env_inputs, n_actions):
+    def __init__(self, env_inputs, n_actions, is_actor=False):
         super(DQN_CNN_Model, self).__init__()
+        self.is_actor = is_actor
         in_channels, in_height, in_width = env_inputs
         self.first_layer = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         out_height = (in_height - 8) // 4 + 1
@@ -20,12 +21,16 @@ class DQN_CNN_Model(nn.Module):
         x = self.first_layer(env_input)
         x = self.second_layer(self.ln(x))
         x = self.out_layer(x.flatten(1))
+        if self.is_actor:
+            return F.softmax(x, dim=1)
         return x
 
 
 class DQN_CNN_Model_Paper(nn.Module):
-    def __init__(self, env_inputs, n_actions):
+    def __init__(self, env_inputs, n_actions, is_actor=False):
         super(DQN_CNN_Model_Paper, self).__init__()
+
+        self.is_actor = is_actor
 
         in_channels, in_height, in_width = env_inputs
         self.l1 = nn.Conv2d(in_channels, 16, kernel_size=8, stride=4)
@@ -38,6 +43,8 @@ class DQN_CNN_Model_Paper(nn.Module):
         x = F.relu(self.l1(x))
         x = F.relu(self.l2(x))
         x = F.relu(self.fc1(x.view(x.size(0), -1)))
+        if self.is_actor:
+            return F.softmax(self.fc2(x), dim=1)
         return self.fc2(x)
 
     def feat_size(self, shape):

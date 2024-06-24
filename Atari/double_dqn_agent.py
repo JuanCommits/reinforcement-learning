@@ -30,6 +30,9 @@ class DoubleDQNAgent(Agent):
     def get_optimizer(self, parameters):
         return torch.optim.Adam(parameters, lr=self.learning_rate)
     
+    def get_values(self, states):
+        return (self.policy(states) + self.policy2(states)).mean(1)
+    
     def update_weights(self, total_steps):
         if len(self.memory) > self.batch_size:
             transitions = self.memory.sample(self.batch_size)
